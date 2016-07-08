@@ -10,8 +10,6 @@ from fireplace.exceptions import GameOver
 from fireplace.utils import *
 from hearthstone.enums import GameTag, Zone, PlayState
 from fireplace.logging import log
-import pickle
-from io import StringIO
 
 sys.path.append("..")
 
@@ -348,6 +346,7 @@ def show_board(game):
     log.info("----- END of the board -----")
     log.info("")
 
+
 def load_game():
     data = json.load(open("N://HSTracker//board_state-hunter.json"))
     assert "player" in data
@@ -474,7 +473,7 @@ def load_game():
         player.minions_played_this_turn = 0
         player.minions_killed_this_turn = 0
 
-    return [game, player_name, opponent_name]
+    return game
 
 
 class Move(object):
@@ -836,7 +835,6 @@ def play_move(game: Game, move: Move, silently: bool) -> [bool, Move]:
 
 
 class GameMove(object):
-    saved_game = None
     move = Move()
     next_move = None
 
@@ -901,17 +899,14 @@ def get_game_score(game: Game) -> GameScore:
 
 def replay_game(moves, silently: bool):
     log.disabled = True
-    # game_info = load_game()
-    # game = game_info[0]
-    game = deserialize_game(moves[0].saved_game)
+    game = load_game()
     if silently is False:
         log.disabled = False
         show_board(game)
         log.disabled = True
 
     # First replay everything we had already played
-    for move_number in range(1, len(moves)):
-        move_info = moves[move_number]
+    for move_info in moves:
         try:
             temp = play_move(game, move_info.move, silently)
             assert len(temp) == 2
@@ -933,18 +928,6 @@ def replay_game(moves, silently: bool):
     log.disabled = False
     return game
 
-
-def serialize_game(game: Game) -> StringIO:
-    s = StringIO()
-    pickle.dump(game, s, pickle.HIGHEST_PROTOCOL)
-    return s
-
-
-def deserialize_game(s: StringIO) -> Game:
-    game = pickle.load(s)
-    return game
-
-
 def test_full_game():
     moves = list()
     reload_and_replay = True
@@ -952,24 +935,10 @@ def test_full_game():
 
     best_move_sequence = list()
     best_game_score = None
-    log.disabled = True
-    game = load_game()[0]
-    log.disabled = False
-    zero_move = GameMove()
-    zero_move.move = None
-    zero_move.next_move = None
-    zero_move.saved_game = serialize_game(game)
-    moves.append(zero_move)
 
     while True:
         if reload_and_replay:
-            replayed_game = replay_game(moves, True)
-            replayed_game_score = get_game_score(replayed_game)
-            current_game_score = get_game_score(game)
-            assert not replayed_game_score.is_better(current_game_score)
-            assert not current_game_score.is_better(replayed_game_score)
-            # game = game_info[0]
-            # player_name = game_info[1]
+            game = replay_game(moves, True)
 
         try:
             play_result = False
@@ -985,7 +954,7 @@ def test_full_game():
 
             if play_result is False:  # Failed to play the move
                 if next_move is None:  # There is no next move available
-                    if len(moves) == 1:  # We've checked every possible move, job is done
+                    if len(moves) == 0:  # We've checked every possible move, job is done
                         log.info("")
                         log.info("")
                         log.info("")
@@ -996,7 +965,6 @@ def test_full_game():
                     new_move = moves[len(moves) - 1].next_move
                     moves.pop()
                     reload_and_replay = True
-                    game = deserialize_game(moves[len(moves) - 1].saved_game)
                 else:  # There is another possible move to try
                     new_move = next_move
                     reload_and_replay = False
@@ -1004,7 +972,6 @@ def test_full_game():
                 temp = GameMove()
                 temp.move = new_move
                 temp.next_move = next_move
-                temp.saved_game = serialize_game(game)
                 moves.append(temp)
                 reload_and_replay = False
                 move_score = get_game_score(game)
@@ -1041,11 +1008,12 @@ def test_full_game():
                 reload_and_replay = True
 
 
-
 def main():
     cards.db.initialize()
-
+    import time
+    start = time.time()
     test_full_game()
+    print("Finished in ", time.time() - start, " seconds")
 
 
 if __name__ == "__main__":
