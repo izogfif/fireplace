@@ -51,7 +51,7 @@ class BaseCard(BaseEntity):
 		return self.id.__hash__()
 
 	def __repr__(self):
-		return "<%s (%r)>" % (self.__class__.__name__, self.__str__())
+		return "<%s[entity_id=%s] (%r)>" % (self.__class__.__name__, str(self.entity_id) if hasattr(self, "entity_id") else "Not set", self.__str__())
 
 	def __eq__(self, other):
 		if isinstance(other, BaseCard):

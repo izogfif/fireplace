@@ -220,6 +220,27 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	return game
 
 
+def has_move(game: ".game.Game") -> bool:
+	player = game.current_player
+
+	heropower = player.hero.power
+	if heropower.is_usable():
+		return True
+
+
+	# iterate over our hand and play whatever is playable
+	for card in player.hand:
+		if card.is_playable():
+			return True
+
+	# Randomly attack with whatever can attack
+	for character in player.characters:
+		if character.can_attack():
+			return True
+
+	return False
+
+
 def play_full_game() -> ".game.Game":
 	game = setup_game()
 

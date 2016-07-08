@@ -33,7 +33,8 @@ class BaseGame(Entity):
 		self._action_stack = 0
 
 	def __repr__(self):
-		return "%s(players=%r)" % (self.__class__.__name__, self.players)
+		return "%s[entity_id=%s](players=%r)" % (self.__class__.__name__,
+												 str(self.entity_id) if hasattr(self, "entity_id") else "Not set", self.players)
 
 	def __iter__(self):
 		return chain(self.entities, self.hands, self.decks, self.graveyard, self.discarded, self.setaside)

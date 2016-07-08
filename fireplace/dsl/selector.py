@@ -67,7 +67,12 @@ class EnumSelector(Selector):
 	def eval(self, entities, source):
 		if not self.tag_enum or not hasattr(self.tag_enum, "test"):
 			raise RuntimeError("Unsupported enum type {}".format(str(self.tag_enum)))
-		return [e for e in entities if self.tag_enum.test(e, source)]
+		result = []
+		for e in entities:
+			if self.tag_enum.test(e, source):
+				result.append(e)
+		return result
+		# return [e for e in entities if self.tag_enum.test(e, source)]
 
 	def __repr__(self):
 		return "<%s>" % (self.tag_enum.name)
@@ -142,8 +147,14 @@ class ComparisonSelector(Selector):
 		right_value = (self.right.evaluate(source)
 					   if isinstance(self.right, LazyValue)
 					   else self.right)
-		return [e for e in entities if
-				self.op(self.left.value(e, source), right_value)]
+		result = []
+		for e in entities:
+			left_value = self.left.value(e, source)
+			if self.op(left_value, right_value):
+				result.append(e)
+		return result
+		# return [e for e in entities if
+		#		self.op(self.left.value(e, source), right_value)]
 
 	def __repr__(self):
 		if self.op.__name__ == "eq":
@@ -214,8 +225,9 @@ class SetOpSelector(Selector):
 	def eval(self, entities, source):
 		left_children = self.left.eval(entities, source)
 		right_children = self.right.eval(entities, source)
-		result_entity_ids = self.op(self._entity_id_set(left_children),
-									self._entity_id_set(right_children))
+		left_param = self._entity_id_set(left_children)
+		right_param = self._entity_id_set(right_children)
+		result_entity_ids = self.op(left_param, right_param)
 		# Preserve input ordering and multiplicity
 		return [e for e in entities if e.entity_id in result_entity_ids]
 
