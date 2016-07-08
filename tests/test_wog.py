@@ -12,7 +12,7 @@ def test_a_light_in_the_darkness():
 		card.clear_buffs()
 		basehp = card.health
 		assert buffhp == basehp + 1
-		# TODO: put a test for card class here, once it's implemented
+		assert not hasattr(card, "card_class") or card.card_class == CardClass.PALADIN
 
 
 def test_addled_grizzly():
@@ -24,6 +24,35 @@ def test_addled_grizzly():
 	assert grizzly.atk == grizzly.health == 3
 	wisp.play()
 	assert wisp.atk == wisp.health == 3
+
+
+def test_ancient_harbinger():
+	game = prepare_empty_game()
+	game.player1.give(WISP).shuffle_into_deck()
+	game.player1.give(IMP).shuffle_into_deck()
+	game.player1.give(GOLDSHIRE_FOOTMAN).shuffle_into_deck()
+	game.player1.give(MIND_CONTROL).shuffle_into_deck()
+	game.player1.give("EX1_279").shuffle_into_deck()
+	game.player1.give("NEW1_030").shuffle_into_deck()
+	game.player1.give("OG_290").play()
+	game.end_turn(); game.end_turn()
+
+	assert game.player1.hand[0].cost == 10
+	assert game.player1.hand[0].type == CardType.MINION
+	assert len(game.player1.hand) == 2
+
+
+def test_blackwater_pirate():
+	game = prepare_game()
+	game.player1.give("OG_322").play()
+	reaper = game.player1.give("CS2_112")
+	kobold = game.player1.give(KOBOLD_GEOMANCER)
+	mc = game.player1.give(MIND_CONTROL)
+	assert reaper.cost == 3
+	assert kobold.cost == 2
+	assert mc.cost == 10
+	reaper.play()
+	assert reaper.cost == 5
 
 
 def test_blood_to_ichor():
@@ -140,6 +169,36 @@ def test_chogall_cannot_pay_health():
 	assert not fireball.is_playable()
 
 
+def test_cult_apothecary():
+	game = prepare_game()
+	cult_apothecary = game.player1.give("OG_295")
+	game.end_turn()
+	game.player2.give(WISP).play()
+	game.player2.give(WISP).play()
+	game.player2.give(WISP).play()
+	game.player2.give(WISP).play()
+	game.end_turn()
+	game.player1.hero.set_current_health(10)
+	lightwarden = game.player1.give("EX1_001")
+	lightwarden.play()
+	cult_apothecary.play()
+	assert game.player1.hero.health == 10 + 8
+	assert lightwarden.atk == 3
+
+
+def test_deathwing_dragonlord():
+	game = prepare_game()
+	game.player1.discard_hand()
+	deathwing = game.player1.give("OG_317")
+	ysera = game.player1.give("EX1_572")
+	azure_drake = game.player1.give("EX1_284")
+	wisp = game.player1.give(WISP)
+	deathwing.play()
+	deathwing.destroy()
+	assert game.player1.hand == [wisp]
+	assert game.player1.field == [ysera, azure_drake]
+
+
 def test_demented_frostcaller():
 	game = prepare_game()
 	game.player1.give("OG_085").play()
@@ -153,6 +212,41 @@ def test_demented_frostcaller():
 		assert len(game.player2.characters.filter(frozen=True)) == i
 	# Cast one extra coin, ensuring nothing breaks when all enemies are already frozen.
 	game.player1.give(THE_COIN).play()
+
+
+def test_doom():
+	game = prepare_game()
+	game.player1.discard_hand()
+	game.player1.give(WISP).play()
+	game.player1.give(WISP).play()
+	game.player1.give(WISP).play()
+	game.player1.give("OG_239").play()
+	assert len(game.player1.hand) == 3
+
+
+def test_eater_of_secrets():
+	game = prepare_game()
+	eater_of_secrets = game.player1.give("OG_254")
+	game.end_turn()
+	game.player2.give("EX1_379").play()
+	game.player2.give("EX1_609").play()
+	game.player2.give("EX1_294").play()
+	game.end_turn()
+	eater_of_secrets.play()
+	assert eater_of_secrets.atk == 5
+	assert eater_of_secrets.health == 7
+	assert not game.player2.secrets
+
+
+def test_evolved_kobold():
+	game = prepare_game()
+	statue = game.player1.give(ANIMATED_STATUE)
+	statue.play()
+	game.player1.give(MOONFIRE).play(target=statue)
+	assert statue.health == 10 - 1
+	game.player1.give("OG_082").play()
+	game.player1.give(MOONFIRE).play(target=statue)
+	assert statue.health == 10 - 1 - 3
 
 
 def test_feral_rage():
@@ -207,6 +301,15 @@ def test_hallazeal_the_ascended():
 	assert hallazeal.dead
 
 
+def test_journey_below():
+	game = prepare_empty_game()
+	journey_below = game.player1.give("OG_072")
+	journey_below.play()
+	assert len(game.player1.choice.cards) == 3
+	for card in game.player1.choice.cards:
+		assert card.has_deathrattle
+
+
 def test_malkorok():
 	game = prepare_game()
 	malkorok = game.player1.give("OG_220")
@@ -240,6 +343,20 @@ def test_mire_keeper():
 	game.player1.max_mana = 9
 	game.player1.give("OG_202").play(choose="OG_202b")
 	assert game.player1.max_mana == 10
+
+
+def test_nerubian_prophet():
+	game = prepare_game()
+	nerubian_prophet = game.player1.give("OG_138")
+	assert nerubian_prophet.cost == 6
+	game.end_turn(); game.end_turn()
+
+	assert nerubian_prophet.cost == 5
+	game.end_turn(); game.end_turn()
+
+	assert nerubian_prophet.cost == 4
+	nerubian_prophet.play()
+	assert nerubian_prophet.cost == 6
 
 
 def test_primal_fusion():
@@ -417,6 +534,31 @@ def test_thistle_tea():
 	assert game.player1.hand[0] == game.player1.hand[1] == game.player1.hand[2]
 
 
+def test_undercity_huckster():
+	game = prepare_empty_game()
+	undercity_huckster = game.player1.give("OG_330")
+	undercity_huckster.play()
+	arcane_shot = game.player1.give("DS1_185")
+	arcane_shot.play(target=undercity_huckster)
+	assert game.player1.hand[0].card_class == game.player2.hero.card_class
+
+
+def test_validated_doomsayer():
+	game = prepare_game()
+	validated_doomsayer = game.player1.give("OG_200")
+	validated_doomsayer.play()
+	assert validated_doomsayer.atk == 0
+	game.end_turn()
+	assert validated_doomsayer.atk == 0
+	game.end_turn()
+	assert validated_doomsayer.atk == 7
+	game.end_turn()
+	game.player2.give("EX1_360").play(target=validated_doomsayer)
+	assert validated_doomsayer.atk == 1
+	game.end_turn()
+	assert validated_doomsayer.atk == 7
+
+
 def test_vilefin_inquisitor():
 	game = prepare_game()
 	vilefin_inquisitor = game.player1.give("OG_006")
@@ -435,5 +577,22 @@ def test_wisps_of_the_old_gods():
 
 	game.player1.give("OG_195").play(choose="OG_195b")
 	for wisp in game.player1.field:
-		assert wisp.atk ==  wisp.health == 3
+		assert wisp.atk == wisp.health == 3
 		assert wisp.id == "OG_195c"
+
+
+def test_yshaarj_rage_unbound():
+	game = prepare_empty_game()
+	yshaarj = game.player1.give("OG_042")
+	wisp = game.player1.give(WISP)
+	wisp.shuffle_into_deck()
+	moonfire = game.player1.give(MOONFIRE)
+	moonfire.shuffle_into_deck()
+	yshaarj.play()
+	game.end_turn()
+	assert game.player1.field == [yshaarj, wisp]
+	assert game.player1.deck == [moonfire]
+	game.end_turn(); game.end_turn()
+
+	assert game.player1.field == [yshaarj, wisp]
+	assert len(game.player1.deck) == 0
