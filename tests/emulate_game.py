@@ -347,6 +347,24 @@ def show_board(game):
     log.info("")
 
 
+# def save_game(game: Game) -> str:
+#     playerObject = game.current_player
+#     opponentObject = None
+#     for player in game.players:
+#         if player == game.current_player:
+#             playerObject = player
+#         else:
+#             opponentObject = player
+#
+#     result = object()
+#     player = object()
+#     player["playerClass"] = game.current_player
+#     for entity in game.entities:
+#
+#         pass
+#     return result
+
+
 def load_game():
     data = json.load(open("N://HSTracker//board_state-hunter.json"))
     assert "player" in data
